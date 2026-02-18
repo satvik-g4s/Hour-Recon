@@ -13,13 +13,12 @@ st.title("Hours Recon Automation (VBA → Pandas Version)")
 col1, col2 = st.columns(2)
 
 with col1:
-    master_file = st.file_uploader("1️⃣ Upload Pillar Report", type=["xlsx", "csv"])
-    master_date_file = st.file_uploader("2️⃣ Upload Invoice Dump", type=["xlsx", "csv"])
-    billing_file = st.file_uploader("3️⃣ Upload Billing Cycle Attendance", type=["xlsx", "csv"])
+    master_file = st.file_uploader(" Upload Pillar Report", type=["xlsx", "csv"])
+    master_date_file = st.file_uploader(" Upload Invoice Dump", type=["xlsx", "csv"])
 
 with col2:
-    owner_file = st.file_uploader("5️⃣ Upload Owner Data", type=["xlsx", "csv"])
-    billing_file = st.file_uploader("3️⃣ Upload Billing Cycle Attendance", type=["xlsx", "csv"])
+    owner_file = st.file_uploader(" Upload Owner Data", type=["xlsx", "csv"])
+    billing_file = st.file_uploader(" Upload Billing Cycle Attendance", type=["xlsx", "csv"])
 special_customer = 7401    
 
 # ==============================
