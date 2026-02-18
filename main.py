@@ -34,7 +34,7 @@ def read_file(file):
 # MAIN PROCESS
 # ==============================
 
-if st.button("🚀 Run Full Automation"):
+if st.button("Run"):
 
     # ==============================
     # READ FILES
