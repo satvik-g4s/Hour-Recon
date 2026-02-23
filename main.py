@@ -13,7 +13,7 @@ with col2:
 with col3:
     uploaded_file_owner = st.file_uploader("Upload Owner Map CSV (columns:id, company_no, hub, so_locn, billing_location,hub_finance_head, branch_finance_lead, sscUser, sscUser1,Cust_No,Cust_Name,isRefresh)", type=["csv"])
 with col4:
-    uploaded_file_attendance = st.file_uploader("Upload Attendance Excel("Row Labels" should be the name of the key column)", type=["xlsx"])
+    uploaded_file_attendance = st.file_uploader("Upload Attendance Excel([Row Labels] should be the name of the key column)", type=["xlsx"])
 
 run = st.button("Run")
 
