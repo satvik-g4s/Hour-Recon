@@ -9,13 +9,23 @@ st.set_page_config(layout="wide")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    uploaded_file_dump = st.file_uploader("Upload Dump CSV (columns: Order No, Period From, Period To, Invoice dt)", type=["csv"])
+    uploaded_file_dump = st.file_uploader("Upload Dump CSV", type=["csv"])
+    st.caption("Columns required:")
+    st.caption("Order No, Period From, Period To, Invoice dt")
+
 with col2:
-    uploaded_file_pillar = st.file_uploader("Upload Pillar CSV (columns: Location, Customer Code, Customer Name, Order No, Invoice No, SO Line No, No of Post, Deployment Hrs, WF_TaskID, Performed Hrs, Billed Hrs, Billed Vs Performed, Contracted Vs Performed, Billing Pattern, ERP Cont Hrs, Saturn Cont Hrs, Scheduled Hrs)", type=["csv"])
+    uploaded_file_pillar = st.file_uploader("Upload Pillar CSV", type=["csv"])
+    st.caption("Columns required:")
+    st.caption("Location, Customer Code, Customer Name, Order No, Invoice No, SO Line No, No of Post, Deployment Hrs, WF_TaskID, Performed Hrs, Billed Hrs, Billed Vs Performed, Contracted Vs Performed, Billing Pattern, ERP Cont Hrs, Saturn Cont Hrs, Scheduled Hrs")
+
 with col3:
-    uploaded_file_owner = st.file_uploader("Upload Owner Map CSV (columns:id, company_no, hub, so_locn, billing_location,hub_finance_head, branch_finance_lead, sscUser, sscUser1,Cust_No,Cust_Name,isRefresh)", type=["csv"])
+    uploaded_file_owner = st.file_uploader("Upload Owner Map CSV", type=["csv"])
+    st.caption("Columns required:")
+    st.caption("id, company_no, hub, so_locn, billing_location, hub_finance_head, branch_finance_lead, sscUser, sscUser1, Cust_No, Cust_Name, isRefresh")
+
 with col4:
-    uploaded_file_attendance = st.file_uploader("Upload Attendance Excel([Row Labels] should be the name of the key column)", type=["xlsx"])
+    uploaded_file_attendance = st.file_uploader("Upload Attendance Excel", type=["xlsx"])
+    st.caption("Key column name should be : Row Labels")
 
 run = st.button("Run")
 
