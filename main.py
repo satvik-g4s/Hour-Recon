@@ -11,9 +11,7 @@ with col1:
 with col2:
     uploaded_file_pillar = st.file_uploader("Upload Pillar CSV (columns: Location, Customer Code, Customer Name, Order No, Invoice No, SO Line No, No of Post, Deployment Hrs, WF_TaskID, Performed Hrs, Billed Hrs, Billed Vs Performed, Contracted Vs Performed, Billing Pattern, ERP Cont Hrs, Saturn Cont Hrs, Scheduled Hrs)", type=["csv"])
 with col3:
-    uploaded_file_owner = st.file_uploader("Upload Owner Map CSV (columns:'id', 'company_no', 'hub', 'so_locn', 'billing_location',
-       'hub_finance_head', 'branch_finance_lead', 'sscUser', 'sscUser1',
-       'Cust_No', 'Cust_Name', 'isRefresh')", type=["csv"])
+    uploaded_file_owner = st.file_uploader("Upload Owner Map CSV (columns:id, company_no, hub, so_locn, billing_location,hub_finance_head, branch_finance_lead, sscUser, sscUser1,Cust_No,Cust_Name,isRefresh)", type=["csv"])
 with col4:
     uploaded_file_attendance = st.file_uploader("Upload Attendance Excel("Row Labels" should be the name of the key column)", type=["xlsx"])
 
