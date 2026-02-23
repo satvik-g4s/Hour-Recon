@@ -121,10 +121,37 @@ if run:
 
         pivot["Var. Performed Vs. Billed"] = pivot["Total Billed"] - pivot["Total Performed"]
 
-        st.dataframe(pivot, use_container_width=True)
+        india_conso = pivot.copy()
 
-        csv = pivot.to_csv(index=False).encode("utf-8")
-        st.download_button("Download Output CSV", csv, "output.csv", "text/csv")
+        hub_sheets = {}
+        if "HUB" in india_conso.columns:
+            for hub in india_conso["HUB"].dropna().unique():
+                hub_sheets[hub] = india_conso[india_conso["HUB"] == hub]
+
+        st.write("Preparing Excel output...")
+
+        output = BytesIO()
+
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            india_conso.to_excel(
+                writer,
+                sheet_name="India Conso",
+                index=False
+            )
+
+            for hub, df_hub in hub_sheets.items():
+                df_hub.to_excel(
+                    writer,
+                    sheet_name=str(hub)[:31],
+                    index=False
+                )
+
+        st.download_button(
+            "Download Excel Output",
+            data=output.getvalue(),
+            file_name="Hours_Recon_Output.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     else:
-        st.write("Please upload all files.")    
+        st.write("Please upload all files.")
