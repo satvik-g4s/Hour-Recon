@@ -6,27 +6,45 @@ import numpy as np
 
 st.set_page_config(layout="wide")
 
+def read_file(file, header=0, usecols=None):
+    
+    if file.name.endswith(".csv"):
+        return pd.read_csv(
+            file,
+            header=header,
+            encoding="latin1",
+            index_col=False,
+            usecols=usecols
+        )
+
+    elif file.name.endswith(".xlsx"):
+        return pd.read_excel(
+            file,
+            header=header,
+            usecols=usecols
+        )
+
 st.title("Hours Recon")
 
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    uploaded_file_dump = st.file_uploader("Upload Dump CSV", type=["csv"])
+    uploaded_file_dump = st.file_uploader("Upload Dump CSV", type=["csv","xlsx"])
     st.caption("Columns required:")
     st.caption("Order No, Period From, Period To, Invoice dt")
 
 with col2:
-    uploaded_file_pillar = st.file_uploader("Upload Pillar CSV", type=["csv"])
+    uploaded_file_pillar = st.file_uploader("Upload Pillar CSV", type=["csv","xlsx"])
     st.caption("Columns required:")
     st.caption("Location, Customer Code, Customer Name, Order No, Invoice No, SO Line No, No of Post, Deployment Hrs, WF_TaskID, Performed Hrs, Billed Hrs, Billed Vs Performed, Contracted Vs Performed, Billing Pattern, ERP Cont Hrs, Saturn Cont Hrs, Scheduled Hrs")
 
 with col3:
-    uploaded_file_owner = st.file_uploader("Upload Owner Map CSV", type=["csv"])
+    uploaded_file_owner = st.file_uploader("Upload Owner Map CSV", type=["csv","xlsx"])
     st.caption("Columns required:")
     st.caption("id, company_no, hub, so_locn, billing_location, hub_finance_head, branch_finance_lead, sscUser, sscUser1, Cust_No, Cust_Name, isRefresh")
 
 with col4:
-    uploaded_file_attendance = st.file_uploader("Upload Attendance Excel", type=["xlsx"])
+    uploaded_file_attendance = st.file_uploader("Upload Attendance Excel", type=["csv","xlsx"])
     st.caption("Required key column:")
     st.caption("Row Labels")
 
@@ -38,31 +56,13 @@ if run:
 
         st.write("Reading files...")
 
-        dump = pd.read_csv(
-            uploaded_file_dump,
-            header=2,
-            encoding="latin1",
-            index_col=False,
-            usecols=["Order No", "Period From", "Period To", "Invoice dt"]
-        )
+        dump = read_file( uploaded_file_dump, header=2, usecols=["Order No","Period From","Period To","Invoice dt"] )
 
-        pillar = pd.read_csv(
-            uploaded_file_pillar,
-            header=2,
-            encoding="latin1",
-            index_col=False,
-            usecols=[
-                "Location","Customer Code","Customer Name","Order No","Invoice No",
-                "SO Line No","No of Post","Deployment Hrs","WF_TaskID",
-                "Performed Hrs","Billed Hrs","Billed Vs Performed",
-                "Contracted Vs Performed","Billing Pattern",
-                "ERP Cont Hrs","Saturn Cont Hrs","Scheduled Hrs"
-            ]
-        )
+        pillar = read_file( uploaded_file_pillar, header=2, usecols=[ "Location","Customer Code","Customer Name","Order No","Invoice No", "SO Line No","No of Post","Deployment Hrs","WF_TaskID", "Performed Hrs","Billed Hrs","Billed Vs Performed", "Contracted Vs Performed","Billing Pattern", "ERP Cont Hrs","Saturn Cont Hrs","Scheduled Hrs" ] )
 
-        owner_map = pd.read_csv(uploaded_file_owner, index_col=False)
+        owner_map = read_file(uploaded_file_owner)
 
-        attendance = pd.read_excel(uploaded_file_attendance, header=2)
+        attendance = read_file(uploaded_file_attendance, header=2)
 
         st.write("Cleaning data...")
 
@@ -415,7 +415,6 @@ if run:
                     index=False
                 )
 
-        st.dataframe(india_conso, use_container_width=True)
 
         st.download_button(
             "Download Output Excel",
