@@ -371,7 +371,7 @@ if run:
         # Create keys
         pillar["Key"] = pillar["Location"] + "_" + pillar["Customer Code"]  # Add separator for clarity
         owner_map["Key"] = owner_map["billing_location"] + "_" + owner_map["cust_no"]
-
+        owner_map = owner_map.drop_duplicates(subset="Key", keep="last")
         
         # Perform the merge
         pillar = pillar.merge(
