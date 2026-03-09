@@ -359,33 +359,32 @@ if run:
         pivot = pivot[[ "HUB", "Location", "Zone", "Owner", "Customer Code", "Customer Name", "Order No", "Invoice No", "WF_TaskID", "Period From", "Period To", "Total Attendance", "Total Performed", "Total Billed", "Var. Performed Vs. Billed", "Office Duty/Office Patrolling", "Excess Paid", "Reliever duty", "Excess billing", "Short billing", "Disciplinary Deduction", "Short / Missing Roster", "Inter assignment adjustment", "Indirect Hours Not Captured in Saturn", "Training & OJT", "Complimentary Hrs.", "Billing Cycle/ hours calculation other than calendar month", "Bill Hrs should being Cycle", "Diff with bill cycle should be", "Total ( B )", "Check (A - B)", "BFL Remarks", "SSC Query (If Any)" ]]
 
 
-        variance_lookup = {}
+        pivot["Inter assignment adjustment"] = ""
 
+        seen = {}
+        
         for idx, row in pivot.iterrows():
+        
             order = str(row["Order No"]).strip()
             val = row["Var. Performed Vs. Billed"]
         
-            if pd.notna(val):
-                variance_lookup.setdefault(order, []).append(val)
-
-        def inter_assignment_adjustment(row):            
-            order = str(row["Order No"]).strip()
-            val = row["Var. Performed Vs. Billed"]
+            if pd.isna(val) or val == 0:
+                continue
         
-            if pd.isna(val):
-                return ""
+            key = (order, round(val, 6))
+            reverse_key = (order, round(-val, 6))
         
-            values = variance_lookup.get(order, [])
+            if reverse_key in seen:
         
-            if -val in values:
-                return -val
+                prev_idx = seen[reverse_key]
         
-            return ""
-
-        pivot["Inter assignment adjustment"] = pivot.apply(
-            inter_assignment_adjustment,
-            axis=1
-        )
+                pivot.loc[idx, "Inter assignment adjustment"] = -val
+                pivot.loc[prev_idx, "Inter assignment adjustment"] = -pivot.loc[prev_idx, "Var. Performed Vs. Billed"]
+        
+                del seen[reverse_key]
+        
+            else:
+                seen[key] = idx
 
         india_conso = pivot.copy()
 
