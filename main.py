@@ -65,7 +65,9 @@ if run:
         attendance = read_file(uploaded_file_attendance, header=2)
 
         st.write("Cleaning data...")
-        owner_map.columns = ( owner_map.columns .str.strip() .str.lower() .str.replace(" ", "_") )
+        owner_map.columns = ( owner_map.columns .str.strip() .str.lower() .str.replace(" ", "_") 
+
+        st.write(owner_map.columns.tolist())
 
         str_cols = dump.select_dtypes(include="object").columns
         dump[str_cols] = dump[str_cols].apply(lambda col: col.str.strip())
