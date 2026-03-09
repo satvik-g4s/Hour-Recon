@@ -184,8 +184,7 @@ if run:
             ("Kolkata","BARGRD","Odisha Zone"),
             ("Kolkata","ROUGRD","Odisha Zone"),
             ("Kolkata","JAMGRD","East COC"),
-            ("Kolkata","KONGRD","Kolkata Zone"),
-            
+            ("Kolkata","KONGRD","Kolkata Zone"),            
             ("NCR","BHLGRD","North COC"),
             ("NCR","IDRGRD","North COC"),
             ("NCR","CP1GRD","Delhi Zone"),
@@ -229,8 +228,7 @@ if run:
             ("NCR","SNPGRD","North COC"),
             ("NCR","TYMGRD","Delhi Zone"),
             ("NCR","TEPGRD","Noida Zone"),
-            ("NCR","OKLGRD","Delhi Zone"),
-            
+            ("NCR","OKLGRD","Delhi Zone"),            
             ("South","HUBGRD","South COC"),
             ("South","BELGRD","South COC"),
             ("South","BANGRD","Bangalore Zone"),
@@ -273,8 +271,7 @@ if run:
             ("South","VJWGRD","South COC"),
             ("South","VWDGRD","South COC"),
             ("South","ANPGRD","Hyderabad Zone"),
-            ("South","HSRGRD","South COC"),
-            
+            ("South","HSRGRD","South COC"),            
             ("Mumbai","AHDGRD","West COC"),
             ("Mumbai","AHMGRD","West COC"),
             ("Mumbai","AINGRD","West COC"),
@@ -302,17 +299,14 @@ if run:
             ("Mumbai","PNIGRD","Pune Zone"),
             ("Mumbai","MONGRD","Mumbai Zone"),
             ("Mumbai","MUSMSP","Mumbai Zone"),
-            ("Mumbai","CORMSP","Mumbai Zone"),
-            
+            ("Mumbai","CORMSP","Mumbai Zone"),            
             ("HeadOffice","INVGRD","Head Office"),
             ("HeadOffice","OTHGRD","Head Office"),
             ("HeadOffice","PSOGRD","Head Office"),
             ("HeadOffice","TRGGRD","Head Office"),
             ("HeadOffice","CORGRD","Head Office"),
-            ("HeadOffice","HO","Head Office"),
-            
-            ("NCR","HIMGRD","North COC")
-            ]
+            ("HeadOffice","HO","Head Office"),            
+            ("NCR","HIMGRD","North COC")            ]
 
         hub_zone = pd.DataFrame(
             hub_zone_data,
