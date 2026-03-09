@@ -127,6 +127,12 @@ if run:
                 .str.replace(" ", "", regex=False)
                 .str.replace("-", "", regex=False)
             )
+        pillar["SO Line No"] = (
+            pillar["SO Line No"]
+            .astype(str)
+            .str.replace(".0","", regex=False)
+            .str.strip()
+        )
 
         pillar["row_key"] = (
             pillar["Order No"].astype(str).str.strip()
