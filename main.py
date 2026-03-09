@@ -89,8 +89,9 @@ if run:
         dump["Order No"] = normalize_order(dump["Order No"])
         pillar["Order No"] = normalize_order(pillar["Order No"])
 
-        dump["Period From"] = pd.to_datetime(dump["Period From"], errors="coerce")
-        dump["Period To"] = pd.to_datetime(dump["Period To"], errors="coerce")
+        dump["Period From"] = pd.to_datetime(dump["Period From"], errors="coerce", dayfirst=True)
+        dump["Period To"] = pd.to_datetime(dump["Period To"], errors="coerce", dayfirst=True)
+        dump["Invoice dt"] = pd.to_datetime(dump["Invoice dt"], errors="coerce", dayfirst=True)
 
         dump = dump.sort_values(by="Invoice dt", ascending=False)
         dump_first = dump.drop_duplicates(subset=["Order No"], keep="first").copy()
