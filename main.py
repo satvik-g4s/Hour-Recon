@@ -91,14 +91,6 @@ if run:
         dump["Period To"] = pd.to_datetime(dump["Period To"], errors="coerce", dayfirst=True)
         dump["Invoice dt"] = pd.to_datetime(dump["Invoice dt"], errors="coerce", dayfirst=True)
 
-        bad_rows = dump[
-            (dump["Period From"].dt.year < 2023) |
-            (dump["Period To"].dt.year < 2023)
-        ]
-        
-        if not bad_rows.empty:
-            st.write("⚠️ Suspicious dump rows (date before 2023):")
-            st.write(bad_rows[["Order No","Period From","Period To","Invoice dt"]].head(50))
 
         dump = dump.sort_values(
             ["Invoice dt", "Period To", "Period From"],
