@@ -7,7 +7,6 @@ import numpy as np
 st.set_page_config(layout="wide")
 
 def read_file(file, header=0, usecols=None):
-    
     if file.name.endswith(".csv"):
         return pd.read_csv(
             file,
@@ -16,7 +15,6 @@ def read_file(file, header=0, usecols=None):
             index_col=False,
             usecols=usecols
         )
-
     elif file.name.endswith(".xlsx"):
         return pd.read_excel(
             file,
@@ -51,33 +49,51 @@ with col4:
 run = st.button("Run")
 
 if run:
-
     if uploaded_file_dump and uploaded_file_pillar and uploaded_file_owner and uploaded_file_attendance:
-
         st.write("Reading files...")
 
-        dump = read_file( uploaded_file_dump, header=2, usecols=["Order No","Period From","Period To","Invoice dt"] )
+        # ----- Dump -----
+        dump = read_file(
+            uploaded_file_dump,
+            header=2,
+            usecols=["Order No","Period From","Period To","Invoice dt"]
+        )
 
-        pillar = read_file( uploaded_file_pillar, header=2, usecols=[ "Location","Customer Code","Customer Name","Order No","Invoice No", "SO Line No","No of Post","Deployment Hrs","WF_TaskID", "Performed Hrs","Billed Hrs","Billed Vs Performed", "Contracted Vs Performed","Billing Pattern", "ERP Cont Hrs","Saturn Cont Hrs","Scheduled Hrs" ] )
+        # ----- Pillar -----
+        pillar = read_file(
+            uploaded_file_pillar,
+            header=2,
+            usecols=[
+                "Location","Customer Code","Customer Name","Order No","Invoice No",
+                "SO Line No","No of Post","Deployment Hrs","WF_TaskID",
+                "Performed Hrs","Billed Hrs","Billed Vs Performed",
+                "Contracted Vs Performed","Billing Pattern",
+                "ERP Cont Hrs","Saturn Cont Hrs","Scheduled Hrs"
+            ]
+        )
 
+        # ----- Owner map -----
         owner_map = read_file(uploaded_file_owner)
+        st.write("Owner map columns (before cleaning):", owner_map.columns.tolist())
+        owner_map.columns = (
+            owner_map.columns
+            .str.strip()
+            .str.lower()
+            .str.replace(" ", "_")
+        )
+        st.write("Owner map columns (after cleaning):", owner_map.columns.tolist())
 
-        attendance = read_file(uploaded_file_attendance, header=2)
-
-        st.write("Cleaning data...")
-        st.write(owner_map.columns.tolist())
-        owner_map.columns = owner_map.columns .str.strip() .str.lower() .str.replace(" ", "_") 
-
-        st.write(owner_map.columns.tolist())
-
+        # ----- Basic cleaning of dump and pillar -----
         str_cols = dump.select_dtypes(include="object").columns
         dump[str_cols] = dump[str_cols].apply(lambda col: col.str.strip())
 
+        # Keep only rows with positive performed or billed hours (optional)
         pillar = pillar[pillar["Performed Hrs"] + pillar["Billed Hrs"] > 0]
 
         str_cols = pillar.select_dtypes(include="object").columns
         pillar[str_cols] = pillar[str_cols].apply(lambda col: col.str.strip())
 
+        # Normalize order numbers
         def normalize_order(s):
             return (
                 s.astype(str)
@@ -89,66 +105,113 @@ if run:
         dump["Order No"] = normalize_order(dump["Order No"])
         pillar["Order No"] = normalize_order(pillar["Order No"])
 
+        # Convert dates in dump
         dump["Period From"] = pd.to_datetime(dump["Period From"], errors="coerce")
-        dump["Period To"] = pd.to_datetime(dump["Period To"], errors="coerce")
+        dump["Period To"]   = pd.to_datetime(dump["Period To"], errors="coerce")
 
+        # Take the first occurrence per Order No (latest Invoice dt)
         dump = dump.sort_values(by="Invoice dt", ascending=False)
         dump_first = dump.drop_duplicates(subset=["Order No"], keep="first").copy()
 
+        # Create Date_Range using day numbers (original logic – we'll keep it but not use for attendance)
         dump_first["Date_Range"] = (
             dump_first["Period From"].dt.day.astype("Int64").astype(str)
             + "-"
             + dump_first["Period To"].dt.day.astype("Int64").astype(str)
         )
 
+        # Merge dump dates into pillar
         pillar = pillar.merge(
             dump_first[["Order No","Period From","Period To","Date_Range"]],
             on="Order No",
             how="left"
         )
 
-        st.write("Processing attendance...")
+        # ------------------------------------------------------------
+        # ATTENDANCE – VBA‑style dictionary lookup
+        # ------------------------------------------------------------
+        st.write("Processing attendance (VBA‑style)...")
 
-        def normalize_attendance_col(col):
-            if not isinstance(col, str):
-                return col
-            nums = re.findall(r"\d+", col)
-            if len(nums) == 2:
-                return f"{int(nums[0])}-{int(nums[1])}"
-            return col
-
-        attendance.columns = [normalize_attendance_col(c) for c in attendance.columns]
-
-        def normalize_attendance_row_label(s):
-            return (
-                s.astype(str)
-                .str.upper()
-                .str.strip()
-                .str.replace(" ", "", regex=False)
-                .str.replace("-", "", regex=False)
-            )
-
-        pillar["row_key"] = (
-            pillar["Order No"].astype(str).str.strip()
-            + pillar["SO Line No"].astype(str).str.strip()
+        # Read the two header rows (period from / to)
+        date_headers = pd.read_excel(
+            uploaded_file_attendance,
+            header=None,
+            nrows=2
         )
 
-        attendance["row_key"] = normalize_attendance_row_label(attendance["Row Labels"])
-
-        attendance_long = attendance.melt(
-            id_vars=["row_key"],
-            var_name="Date_Range",
-            value_name="Total Attendance"
+        # Read the data rows (starting from row 3, i.e. skiprows=2)
+        att_data = pd.read_excel(
+            uploaded_file_attendance,
+            header=None,
+            skiprows=2
         )
 
-        pillar = pillar.merge(
-            attendance_long,
-            on=["row_key","Date_Range"],
-            how="left"
+        # Build lookup dictionary
+        attendance_dict = {}
+        # Column 0 = Row Labels (Key2), columns 1..n = date ranges
+        for col_idx in range(1, len(date_headers.columns)):
+            from_date = date_headers.iloc[0, col_idx]
+            to_date   = date_headers.iloc[1, col_idx]
+
+            if pd.isna(from_date) or pd.isna(to_date):
+                continue
+
+            # Format exactly as VBA: "dd-mmm-yy"
+            try:
+                from_str = pd.to_datetime(from_date).strftime("%d-%b-%y")
+                to_str   = pd.to_datetime(to_date).strftime("%d-%b-%y")
+            except:
+                continue
+
+            for row_idx in range(len(att_data)):
+                key2 = att_data.iloc[row_idx, 0]
+                if pd.isna(key2):
+                    continue
+
+                # Normalize Key2: uppercase, no spaces, no hyphens, no ".0"
+                key2_norm = str(key2).upper().strip()
+                key2_norm = key2_norm.replace(" ", "").replace("-", "").replace(".0", "")
+
+                lookup_key = f"{key2_norm}|{from_str}|{to_str}"
+                att_value = att_data.iloc[row_idx, col_idx]
+
+                if pd.notna(att_value):
+                    attendance_dict[lookup_key] = att_value
+
+        st.write(f"Built dictionary with {len(attendance_dict)} entries")
+
+        # Prepare pillar for lookup
+        def clean_key(x):
+            if pd.isna(x):
+                return ""
+            return str(x).upper().strip().replace(" ", "").replace("-", "").replace(".0", "")
+
+        pillar["Key2_VBA"] = (
+            pillar["Order No"].apply(clean_key) +
+            pillar["SO Line No"].apply(clean_key)
         )
 
-        pillar = pillar.drop(columns=["row_key"])
+        # Format dates exactly as VBA does
+        pillar["From_VBA"] = pd.to_datetime(pillar["Period From"]).dt.strftime("%d-%b-%y")
+        pillar["To_VBA"]   = pd.to_datetime(pillar["Period To"]).dt.strftime("%d-%b-%y")
 
+        pillar["Lookup_VBA"] = (
+            pillar["Key2_VBA"] + "|" +
+            pillar["From_VBA"] + "|" +
+            pillar["To_VBA"]
+        )
+
+        pillar["Total Attendance"] = pillar["Lookup_VBA"].map(attendance_dict)
+
+        # Drop temporary columns
+        pillar.drop(columns=["Key2_VBA", "From_VBA", "To_VBA", "Lookup_VBA"], inplace=True)
+
+        matched = pillar["Total Attendance"].notna().sum()
+        total = len(pillar)
+        st.write(f"Matched: {matched}/{total} rows ({matched/total*100:.1f}%)")
+        # ------------------------------------------------------------
+
+        # ----- HUB Zone mapping -----
         st.write("Creating HUB Zone mapping...")
 
         hub_zone_data = [
@@ -254,25 +317,16 @@ if run:
             ("UTKGRD","NCR","North COC"),
         ]
 
-        hub_zone = pd.DataFrame(
-            hub_zone_data,
-            columns=["Location","HUB","Zone"]
-        )
-
+        hub_zone = pd.DataFrame(hub_zone_data, columns=["Location","HUB","Zone"])
         hub_zone["Location"] = normalize_order(hub_zone["Location"])
-        pillar["Location"] = normalize_order(pillar["Location"])
+        pillar["Location"]   = normalize_order(pillar["Location"])
 
-        pillar = pillar.merge(
-            hub_zone,
-            on="Location",
-            how="left"
-        )
+        pillar = pillar.merge(hub_zone, on="Location", how="left")
 
-        # normalize columns before building key
+        # ----- Owner mapping -----
         st.write("Owner mapping...")
-        
-        
-        # Create the keys with more careful handling
+
+        # Prepare owner map keys
         owner_map["billing_location"] = (
             owner_map["billing_location"]
             .astype(str)
@@ -280,7 +334,6 @@ if run:
             .str.replace(" ", "", regex=False)
             .str.upper()
         )
-        
         pillar["Location"] = (
             pillar["Location"]
             .astype(str)
@@ -288,41 +341,35 @@ if run:
             .str.replace(" ", "", regex=False)
             .str.upper()
         )
-        
-        # Handle customer codes - ensure they're strings and strip any special characters
+
         owner_map["cust_no"] = (
             owner_map["cust_no"]
             .astype(str)
             .str.strip()
-            .str.replace(".0", "", regex=False)  # Remove decimal if any
+            .str.replace(".0", "", regex=False)
             .str.upper()
         )
-        
         pillar["Customer Code"] = (
             pillar["Customer Code"]
             .astype(str)
             .str.strip()
-            .str.replace(".0", "", regex=False)  # Remove decimal if any
+            .str.replace(".0", "", regex=False)
             .str.upper()
         )
-        
-        # Create keys
-        pillar["Key"] = pillar["Location"] + "_" + pillar["Customer Code"]  # Add separator for clarity
+
+        # Create composite keys
+        pillar["Key"] = pillar["Location"] + "_" + pillar["Customer Code"]
         owner_map["Key"] = owner_map["billing_location"] + "_" + owner_map["cust_no"]
 
-        
-        # Perform the merge
+        # Merge
         pillar = pillar.merge(
             owner_map[["Key", "branch_finance_lead"]],
             on="Key",
             how="left"
         )
-        
-        
-        # Show sample of unmatched records
-       
         pillar = pillar.rename(columns={"branch_finance_lead": "Owner"})
 
+        # ----- Pivot (aggregation) -----
         st.write("Creating pivot...")
 
         pivot = (
@@ -339,8 +386,8 @@ if run:
         )
 
         pivot = pivot.rename(columns={
-            "Performed Hrs":"Total Performed",
-            "Billed Hrs":"Total Billed"
+            "Performed Hrs": "Total Performed",
+            "Billed Hrs": "Total Billed"
         })
 
         pivot["Var. Performed Vs. Billed"] = (
@@ -353,72 +400,75 @@ if run:
             ""
         )
 
-        extra_cols = [ "Excess Paid", "Reliever duty", "Excess billing", "Short billing", "Disciplinary Deduction", "Short / Missing Roster", "Inter assignment adjustment", "Indirect Hours Not Captured in Saturn", "Training & OJT", "Complimentary Hrs.", "Billing Cycle/ hours calculation other than calendar month", "Bill Hrs should being Cycle", "Diff with bill cycle should be", "Total ( B )", "Check (A - B)", "BFL Remarks", "SSC Query (If Any)" ]
-
-
-
-        
+        # Add extra columns (empty for now)
+        extra_cols = [
+            "Excess Paid", "Reliever duty", "Excess billing",
+            "Short billing", "Disciplinary Deduction",
+            "Short / Missing Roster", "Inter assignment adjustment",
+            "Indirect Hours Not Captured in Saturn",
+            "Training & OJT", "Complimentary Hrs.",
+            "Billing Cycle/ hours calculation other than calendar month",
+            "Bill Hrs should being Cycle",
+            "Diff with bill cycle should be",
+            "Total ( B )", "Check (A - B)",
+            "BFL Remarks", "SSC Query (If Any)"
+        ]
         for col in extra_cols:
             pivot[col] = pd.NA
-        pivot = pivot[[ "HUB", "Location", "Zone", "Owner", "Customer Code", "Customer Name", "Order No", "Invoice No", "WF_TaskID", "Period From", "Period To", "Total Attendance", "Total Performed", "Total Billed", "Var. Performed Vs. Billed", "Office Duty/Office Patrolling", "Excess Paid", "Reliever duty", "Excess billing", "Short billing", "Disciplinary Deduction", "Short / Missing Roster", "Inter assignment adjustment", "Indirect Hours Not Captured in Saturn", "Training & OJT", "Complimentary Hrs.", "Billing Cycle/ hours calculation other than calendar month", "Bill Hrs should being Cycle", "Diff with bill cycle should be", "Total ( B )", "Check (A - B)", "BFL Remarks", "SSC Query (If Any)" ]]
 
+        # Reorder columns to match desired output
+        pivot = pivot[[
+            "HUB", "Location", "Zone", "Owner",
+            "Customer Code", "Customer Name",
+            "Order No", "Invoice No", "WF_TaskID",
+            "Period From", "Period To",
+            "Total Attendance", "Total Performed", "Total Billed",
+            "Var. Performed Vs. Billed",
+            "Office Duty/Office Patrolling",
+            "Excess Paid", "Reliever duty", "Excess billing",
+            "Short billing", "Disciplinary Deduction",
+            "Short / Missing Roster", "Inter assignment adjustment",
+            "Indirect Hours Not Captured in Saturn",
+            "Training & OJT", "Complimentary Hrs.",
+            "Billing Cycle/ hours calculation other than calendar month",
+            "Bill Hrs should being Cycle",
+            "Diff with bill cycle should be",
+            "Total ( B )", "Check (A - B)",
+            "BFL Remarks", "SSC Query (If Any)"
+        ]]
 
-        pivot["Inter assignment adjustment"] = ""
-
+        # ----- Inter assignment adjustment (match cancelling pairs) -----
+        pivot["Inter assignment adjustment"] = ""  # will be filled with formulas later
         seen = {}
-        
         for idx, row in pivot.iterrows():
-        
             order = str(row["Order No"]).strip()
             val = row["Var. Performed Vs. Billed"]
-        
             if pd.isna(val) or val == 0:
                 continue
-        
             key = (order, round(val, 6))
             reverse_key = (order, round(-val, 6))
-        
             if reverse_key in seen:
-        
                 prev_idx = seen[reverse_key]
-        
                 pivot.loc[idx, "Inter assignment adjustment"] = -val
                 pivot.loc[prev_idx, "Inter assignment adjustment"] = -pivot.loc[prev_idx, "Var. Performed Vs. Billed"]
-        
                 del seen[reverse_key]
-        
             else:
                 seen[key] = idx
 
+        # ----- India Conso and Hub sheets -----
         india_conso = pivot.copy()
-
         st.write("Creating HUB sheets...")
-
         hub_sheets = {}
-
         for hub in india_conso["HUB"].dropna().unique():
             hub_sheets[hub] = india_conso[india_conso["HUB"] == hub]
 
+        # ----- Write to Excel -----
         st.write("Preparing Excel output...")
-
         output = BytesIO()
-
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-
-            india_conso.to_excel(
-                writer,
-                sheet_name="India Conso",
-                index=False
-            )
-
+            india_conso.to_excel(writer, sheet_name="India Conso", index=False)
             for hub, df in hub_sheets.items():
-
-                df.to_excel(
-                    writer,
-                    sheet_name=str(hub)[:31],
-                    index=False
-                )
-
+                df.to_excel(writer, sheet_name=str(hub)[:31], index=False)
 
         st.download_button(
             "Download Output Excel",
