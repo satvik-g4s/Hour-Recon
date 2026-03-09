@@ -290,8 +290,8 @@ if run:
         )
         
         # Handle customer codes - ensure they're strings and strip any special characters
-        owner_map["Cust_No"] = (
-            owner_map["Cust_No"]
+        owner_map["cust_No"] = (
+            owner_map["cust_No"]
             .astype(str)
             .str.strip()
             .str.replace(".0", "", regex=False)  # Remove decimal if any
@@ -308,7 +308,7 @@ if run:
         
         # Create keys
         pillar["Key"] = pillar["Location"] + "_" + pillar["Customer Code"]  # Add separator for clarity
-        owner_map["Key"] = owner_map["billing_location"] + "_" + owner_map["Cust_No"]
+        owner_map["Key"] = owner_map["billing_location"] + "_" + owner_map["cust_No"]
 
         
         # Perform the merge
