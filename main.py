@@ -135,10 +135,22 @@ if run:
 
         india_conso = pivot.copy()
 
-        hub_sheets = {}
-        if "HUB" in india_conso.columns:
-            for hub in india_conso["HUB"].dropna().unique():
-                hub_sheets[hub] = india_conso[india_conso["HUB"] == hub]
+        hub_zone_data = [
+            ("DOMGRD","South","Bangalore Zone"),
+            ("ELEGRD","South","Bangalore Zone"),
+            ("HO","Head Office","Head Office"),
+            ("AHDGRD","Mumbai","West COC"),
+            ("BHLGRD","NCR","North COC"),
+        ]
+        
+        df_hub_zone = pd.DataFrame(hub_zone_data, columns=["Location","HUB","Zone"])
+        
+        # Merge HUB and Zone into the consolidated data
+        india_conso = india_conso.merge(
+            df_hub_zone,
+            on="Location",
+            how="left"
+        )
 
         st.write("Preparing Excel output...")
 
