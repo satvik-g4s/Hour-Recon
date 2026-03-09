@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 from io import BytesIO
+import numpy as np
 
 st.set_page_config(layout="wide")
 
@@ -340,6 +341,50 @@ if run:
 
         pivot["Var. Performed Vs. Billed"] = (
             pivot["Total Billed"] - pivot["Total Performed"]
+        )
+
+        pivot["Office Duty/Office Patrolling"] = np.where(
+            pivot["Customer Code"].astype(str) == "7401",
+            pivot["Total Performed"],
+            ""
+        )
+
+        extra_cols = [ "Excess Paid", "Reliever duty", "Excess billing", "Short billing", "Disciplinary Deduction", "Short / Missing Roster", "Inter assignment adjustment", "Indirect Hours Not Captured in Saturn", "Training & OJT", "Complimentary Hrs.", "Billing Cycle/ hours calculation other than calendar month", "Bill Hrs should being Cycle", "Diff with bill cycle should be", "Total ( B )", "Check (A - B)", "BFL Remarks", "SSC Query (If Any)" ]
+
+
+
+        
+        for col in extra_cols:
+            pivot[col] = pd.NA
+        pivot = pivot[[ "HUB", "Location", "Zone", "Owner", "Customer Code", "Customer Name", "Order No", "Invoice No", "WF_TaskID", "Period From", "Period To", "Total Attendance", "Total Performed", "Total Billed", "Var. Performed Vs. Billed", "Office Duty/Office Patrolling", "Excess Paid", "Reliever duty", "Excess billing", "Short billing", "Disciplinary Deduction", "Short / Missing Roster", "Inter assignment adjustment", "Indirect Hours Not Captured in Saturn", "Training & OJT", "Complimentary Hrs.", "Billing Cycle/ hours calculation other than calendar month", "Bill Hrs should being Cycle", "Diff with bill cycle should be", "Total ( B )", "Check (A - B)", "BFL Remarks", "SSC Query (If Any)" ]]
+
+
+        variance_lookup = {}
+
+        for idx, row in pivot.iterrows():
+            order = str(row["Order No"]).strip()
+            val = row["Var. Performed Vs. Billed"]
+        
+            if pd.notna(val):
+                variance_lookup.setdefault(order, []).append(val)
+
+        def inter_assignment_adjustment(row):            
+            order = str(row["Order No"]).strip()
+            val = row["Var. Performed Vs. Billed"]
+        
+            if pd.isna(val):
+                return ""
+        
+            values = variance_lookup.get(order, [])
+        
+            if -val in values:
+                return -val
+        
+            return ""
+
+        pivot["Inter assignment adjustment"] = pivot.apply(
+            inter_assignment_adjustment,
+            axis=1
         )
 
         india_conso = pivot.copy()
