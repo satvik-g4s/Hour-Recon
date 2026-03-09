@@ -3,8 +3,9 @@ import pandas as pd
 import re
 from io import BytesIO
 
-
 st.set_page_config(layout="wide")
+
+st.title("Hours Recon")
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -25,26 +26,41 @@ with col3:
 
 with col4:
     uploaded_file_attendance = st.file_uploader("Upload Attendance Excel", type=["xlsx"])
-    st.caption("Key column name should be : Row Labels")
+    st.caption("Required key column:")
+    st.caption("Row Labels")
 
 run = st.button("Run")
 
 if run:
+
     if uploaded_file_dump and uploaded_file_pillar and uploaded_file_owner and uploaded_file_attendance:
 
         st.write("Reading files...")
 
-        dump = pd.read_csv(uploaded_file_dump, header=2, encoding="latin1", index_col=False,
-                           usecols=["Order No", "Period From", "Period To", "Invoice dt"])
+        dump = pd.read_csv(
+            uploaded_file_dump,
+            header=2,
+            encoding="latin1",
+            index_col=False,
+            usecols=["Order No", "Period From", "Period To", "Invoice dt"]
+        )
 
-        pillar = pd.read_csv(uploaded_file_pillar, header=2, encoding="latin1", index_col=False,
-                             usecols=["Location", "Customer Code", "Customer Name", "Order No", "Invoice No",
-                                      "SO Line No", "No of Post", "Deployment Hrs", "WF_TaskID",
-                                      "Performed Hrs", "Billed Hrs", "Billed Vs Performed",
-                                      "Contracted Vs Performed", "Billing Pattern",
-                                      "ERP Cont Hrs", "Saturn Cont Hrs", "Scheduled Hrs"])
+        pillar = pd.read_csv(
+            uploaded_file_pillar,
+            header=2,
+            encoding="latin1",
+            index_col=False,
+            usecols=[
+                "Location","Customer Code","Customer Name","Order No","Invoice No",
+                "SO Line No","No of Post","Deployment Hrs","WF_TaskID",
+                "Performed Hrs","Billed Hrs","Billed Vs Performed",
+                "Contracted Vs Performed","Billing Pattern",
+                "ERP Cont Hrs","Saturn Cont Hrs","Scheduled Hrs"
+            ]
+        )
 
         owner_map = pd.read_csv(uploaded_file_owner, index_col=False)
+
         attendance = pd.read_excel(uploaded_file_attendance, header=2)
 
         st.write("Cleaning data...")
@@ -58,7 +74,12 @@ if run:
         pillar[str_cols] = pillar[str_cols].apply(lambda col: col.str.strip())
 
         def normalize_order(s):
-            return s.astype(str).str.strip().str.replace(" ", "", regex=False).str.upper()
+            return (
+                s.astype(str)
+                .str.strip()
+                .str.replace(" ", "", regex=False)
+                .str.upper()
+            )
 
         dump["Order No"] = normalize_order(dump["Order No"])
         pillar["Order No"] = normalize_order(pillar["Order No"])
@@ -67,7 +88,7 @@ if run:
         dump["Period To"] = pd.to_datetime(dump["Period To"], errors="coerce")
 
         dump = dump.sort_values(by="Invoice dt", ascending=False)
-        dump_first = dump.drop_duplicates(subset=["Order No"], keep="first").copy()
+        dump_first = dump.drop_duplicates(subset=["Order No"], keep="first")
 
         dump_first["Date_Range"] = (
             dump_first["Period From"].dt.day.astype("Int64").astype(str)
@@ -76,7 +97,7 @@ if run:
         )
 
         pillar = pillar.merge(
-            dump_first[["Order No", "Period From", "Period To", "Date_Range"]],
+            dump_first[["Order No","Period From","Period To","Date_Range"]],
             on="Order No",
             how="left"
         )
@@ -86,7 +107,7 @@ if run:
         def normalize_attendance_col(col):
             if not isinstance(col, str):
                 return col
-            nums = re.findall(r'\d+', col)
+            nums = re.findall(r"\d+", col)
             if len(nums) == 2:
                 return f"{int(nums[0])}-{int(nums[1])}"
             return col
@@ -94,9 +115,18 @@ if run:
         attendance.columns = [normalize_attendance_col(c) for c in attendance.columns]
 
         def normalize_attendance_row_label(s):
-            return s.astype(str).str.upper().str.strip().str.replace(" ", "", regex=False).str.replace("-", "", regex=False)
+            return (
+                s.astype(str)
+                .str.upper()
+                .str.strip()
+                .str.replace(" ", "", regex=False)
+                .str.replace("-", "", regex=False)
+            )
 
-        pillar["row_key"] = pillar["Order No"].astype(str).str.strip() + pillar["SO Line No"].astype(str).str.strip()
+        pillar["row_key"] = (
+            pillar["Order No"].astype(str).str.strip()
+            + pillar["SO Line No"].astype(str).str.strip()
+        )
 
         attendance["row_key"] = normalize_attendance_row_label(attendance["Row Labels"])
 
@@ -106,34 +136,15 @@ if run:
             value_name="Total Attendance"
         )
 
-        pillar = pillar.merge(attendance_long, on=["row_key", "Date_Range"], how="left")
-        pillar = pillar.drop(columns=["row_key"])
-
-        st.write("Creating pivot...")
-
-        pivot = (
-            pillar.groupby([
-                "Location",
-                "Customer Code",
-                "Customer Name",
-                "Order No",
-                "Invoice No",
-                "WF_TaskID",
-                "Period From",
-                "Period To"
-            ], dropna=False)[
-                ["Total Attendance", "Performed Hrs", "Billed Hrs"]
-            ].sum().reset_index()
+        pillar = pillar.merge(
+            attendance_long,
+            on=["row_key","Date_Range"],
+            how="left"
         )
 
-        pivot = pivot.rename(columns={
-            "Performed Hrs": "Total Performed",
-            "Billed Hrs": "Total Billed"
-        })
+        pillar = pillar.drop(columns=["row_key"])
 
-        pivot["Var. Performed Vs. Billed"] = pivot["Total Billed"] - pivot["Total Performed"]
-
-        india_conso = pivot.copy()
+        st.write("Creating HUB Zone mapping...")
 
         hub_zone_data = [
             ("DOMGRD","South","Bangalore Zone"),
@@ -142,41 +153,103 @@ if run:
             ("AHDGRD","Mumbai","West COC"),
             ("BHLGRD","NCR","North COC"),
         ]
-        
-        df_hub_zone = pd.DataFrame(hub_zone_data, columns=["Location","HUB","Zone"])
-        
-        # Merge HUB and Zone into the consolidated data
-        india_conso = india_conso.merge(
-            df_hub_zone,
+
+        hub_zone = pd.DataFrame(
+            hub_zone_data,
+            columns=["Location","HUB","Zone"]
+        )
+
+        hub_zone["Location"] = normalize_order(hub_zone["Location"])
+        pillar["Location"] = normalize_order(pillar["Location"])
+
+        pillar = pillar.merge(
+            hub_zone,
             on="Location",
             how="left"
         )
+
+        st.write("Owner mapping...")
+
+        pillar["Key"] = (
+            pillar["Location"].astype(str)
+            + pillar["Customer Code"].astype(str)
+        ).str.upper()
+
+        owner_map["Key"] = (
+            owner_map["billing_location"].astype(str)
+            + owner_map["Cust_No"].astype(str)
+        ).str.upper()
+
+        pillar = pd.merge(
+            pillar,
+            owner_map[["Key","branch_finance_lead"]],
+            on="Key",
+            how="left"
+        )
+
+        pillar = pillar.rename(columns={"branch_finance_lead":"Owner"})
+
+        st.write("Creating pivot...")
+
+        pivot = (
+            pillar.groupby([
+                "HUB","Location","Zone","Owner",
+                "Customer Code","Customer Name",
+                "Order No","Invoice No","WF_TaskID",
+                "Period From","Period To"
+            ], dropna=False)[
+                ["Total Attendance","Performed Hrs","Billed Hrs"]
+            ]
+            .sum()
+            .reset_index()
+        )
+
+        pivot = pivot.rename(columns={
+            "Performed Hrs":"Total Performed",
+            "Billed Hrs":"Total Billed"
+        })
+
+        pivot["Var. Performed Vs. Billed"] = (
+            pivot["Total Billed"] - pivot["Total Performed"]
+        )
+
+        india_conso = pivot.copy()
+
+        st.write("Creating HUB sheets...")
+
         hub_sheets = {}
+
+        for hub in india_conso["HUB"].dropna().unique():
+            hub_sheets[hub] = india_conso[india_conso["HUB"] == hub]
 
         st.write("Preparing Excel output...")
 
         output = BytesIO()
 
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+
             india_conso.to_excel(
                 writer,
                 sheet_name="India Conso",
                 index=False
             )
 
-            for hub, df_hub in hub_sheets.items():
-                df_hub.to_excel(
+            for hub, df in hub_sheets.items():
+
+                df.to_excel(
                     writer,
                     sheet_name=str(hub)[:31],
                     index=False
                 )
 
+        st.dataframe(india_conso, use_container_width=True)
+
         st.download_button(
-            "Download Excel Output",
+            "Download Output Excel",
             data=output.getvalue(),
             file_name="Hours_Recon_Output.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
     else:
-        st.write("Please upload all files.")
+        st.warning("Please upload all files.")
