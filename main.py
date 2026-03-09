@@ -265,24 +265,20 @@ if run:
 
         st.write("Owner mapping...")
 
-        pillar["Key"] = (
-            pillar["Location"].astype(str)
-            + pillar["Customer Code"].astype(str)
-        ).str.upper()
-
-        owner_map["Key"] = (
-            owner_map["billing_location"].astype(str)
-            + owner_map["Cust_No"].astype(str)
-        ).str.upper()
-
-        pillar = pd.merge(
-            pillar,
-            owner_map[["Key","branch_finance_lead"]],
-            on="Key",
+        mapping_df["Cust_No"] = mapping_df["Cust_No"].astype(str)
+        df["Customer Code"] = df["Customer Code"].astype(str)
+        
+        mapping_df["so_locn"] = mapping_df["so_locn"].str.strip()
+        df["Location"] = df["Location"].str.strip()
+        
+        df = df.merge(
+            mapping_df[["so_locn","Cust_No","branch_finance_lead"]],
+            left_on=["Location","Customer Code"],
+            right_on=["so_locn","Cust_No"],
             how="left"
         )
-
-        pillar = pillar.rename(columns={"branch_finance_lead":"Owner"})
+        
+        df["Owner"] = df["branch_finance_lead"]
 
         st.write("Creating pivot...")
 
