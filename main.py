@@ -288,7 +288,7 @@ if run:
             how="left"
         )
 
-    pillar = pillar.rename(columns={"branch_finance_lead":"Owner"})
+        pillar = pillar.rename(columns={"branch_finance_lead":"Owner"})
 
         st.write("Creating pivot...")
 
