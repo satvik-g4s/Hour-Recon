@@ -264,6 +264,15 @@ if run:
         )
 
         # normalize columns before building key
+        st.write("Debugging owner mapping...")
+        
+        # First, let's see some samples
+        st.write("Sample pillar locations:", pillar["Location"].dropna().unique()[:10])
+        st.write("Sample owner map billing_locations:", owner_map["billing_location"].dropna().unique()[:10])
+        st.write("Sample pillar customer codes:", pillar["Customer Code"].dropna().unique()[:10])
+        st.write("Sample owner map Cust_No:", owner_map["Cust_No"].dropna().unique()[:10])
+        
+        # Create the keys with more careful handling
         owner_map["billing_location"] = (
             owner_map["billing_location"]
             .astype(str)
@@ -280,10 +289,12 @@ if run:
             .str.upper()
         )
         
+        # Handle customer codes - ensure they're strings and strip any special characters
         owner_map["Cust_No"] = (
             owner_map["Cust_No"]
             .astype(str)
             .str.strip()
+            .str.replace(".0", "", regex=False)  # Remove decimal if any
             .str.upper()
         )
         
@@ -291,21 +302,48 @@ if run:
             pillar["Customer Code"]
             .astype(str)
             .str.strip()
+            .str.replace(".0", "", regex=False)  # Remove decimal if any
             .str.upper()
         )
         
-        # create key
-        pillar["Key"] = pillar["Location"] + pillar["Customer Code"]
-        owner_map["Key"] = owner_map["billing_location"] + owner_map["Cust_No"]
+        # Create keys
+        pillar["Key"] = pillar["Location"] + "_" + pillar["Customer Code"]  # Add separator for clarity
+        owner_map["Key"] = owner_map["billing_location"] + "_" + owner_map["Cust_No"]
         
-        # merge
+        # Check for matches before merging
+        pillar_keys = set(pillar["Key"].dropna())
+        owner_keys = set(owner_map["Key"].dropna())
+        matching_keys = pillar_keys.intersection(owner_keys)
+        
+        st.write(f"Total pillar keys: {len(pillar_keys)}")
+        st.write(f"Total owner map keys: {len(owner_keys)}")
+        st.write(f"Matching keys: {len(matching_keys)}")
+        
+        if len(matching_keys) == 0:
+            st.warning("No matching keys found! Showing samples:")
+            st.write("Sample pillar keys (first 10):", list(pillar_keys)[:10])
+            st.write("Sample owner map keys (first 10):", list(owner_keys)[:10])
+        else:
+            st.write("Sample matching keys (first 10):", list(matching_keys)[:10])
+        
+        # Perform the merge
         pillar = pillar.merge(
-            owner_map[["Key","branch_finance_lead"]],
+            owner_map[["Key", "branch_finance_lead"]],
             on="Key",
             how="left"
         )
         
-        pillar = pillar.rename(columns={"branch_finance_lead":"Owner"})
+        # Check merge results
+        owner_matched = pillar["branch_finance_lead"].notna().sum()
+        st.write(f"Rows with owner assigned: {owner_matched} out of {len(pillar)} ({owner_matched/len(pillar)*100:.1f}%)")
+        
+        # Show sample of unmatched records
+        unmatched = pillar[pillar["branch_finance_lead"].isna()]
+        if not unmatched.empty:
+            st.write("Sample of unmatched records (first 10):")
+            st.write(unmatched[["Location", "Customer Code", "Key"]].head(10))
+        
+        pillar = pillar.rename(columns={"branch_finance_lead": "Owner"})
 
         st.write("Creating pivot...")
 
