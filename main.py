@@ -65,7 +65,7 @@ if run:
         attendance = read_file(uploaded_file_attendance, header=2)
 
         st.write("Cleaning data...")
-        owner_map.columns = ( owner_map.columns .str.strip() .str.lower() .str.replace(" ", "_") 
+        owner_map.columns = owner_map.columns .str.strip() .str.lower() .str.replace(" ", "_") 
 
         st.write(owner_map.columns.tolist())
 
