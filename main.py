@@ -65,6 +65,7 @@ if run:
         attendance = read_file(uploaded_file_attendance, header=2)
 
         st.write("Cleaning data...")
+        owner_map.columns = ( owner_map.columns .str.strip() .str.lower() .str.replace(" ", "_") )
 
         str_cols = dump.select_dtypes(include="object").columns
         dump[str_cols] = dump[str_cols].apply(lambda col: col.str.strip())
@@ -89,7 +90,7 @@ if run:
         dump["Period To"] = pd.to_datetime(dump["Period To"], errors="coerce")
 
         dump = dump.sort_values(by="Invoice dt", ascending=False)
-        dump_first = dump.drop_duplicates(subset=["Order No"], keep="first")
+        dump_first = dump.drop_duplicates(subset=["Order No"], keep="first").copy()
 
         dump_first["Date_Range"] = (
             dump_first["Period From"].dt.day.astype("Int64").astype(str)
