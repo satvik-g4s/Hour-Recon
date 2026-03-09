@@ -263,31 +263,48 @@ if run:
             how="left"
         )
 
-        st.write("Owner mapping...")
-
         # normalize columns before building key
-        owner_map["billing_location"] = normalize_order(owner_map["billing_location"])
-        pillar["Location"] = normalize_order(pillar["Location"])
-        
-        owner_map["Cust_No"] = owner_map["Cust_No"].astype(str).str.strip()
-        pillar["Customer Code"] = pillar["Customer Code"].astype(str).str.strip()
-        
-        pillar["Key"] = (
-            pillar["Location"]
-            + pillar["Customer Code"]
-        ).str.upper()
-        
-        owner_map["Key"] = (
+        owner_map["billing_location"] = (
             owner_map["billing_location"]
-            + owner_map["Cust_No"]
-        ).str.upper()
+            .astype(str)
+            .str.strip()
+            .str.replace(" ", "", regex=False)
+            .str.upper()
+        )
         
+        pillar["Location"] = (
+            pillar["Location"]
+            .astype(str)
+            .str.strip()
+            .str.replace(" ", "", regex=False)
+            .str.upper()
+        )
+        
+        owner_map["Cust_No"] = (
+            owner_map["Cust_No"]
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+        
+        pillar["Customer Code"] = (
+            pillar["Customer Code"]
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+        
+        # create key
+        pillar["Key"] = pillar["Location"] + pillar["Customer Code"]
+        owner_map["Key"] = owner_map["billing_location"] + owner_map["Cust_No"]
+        
+        # merge
         pillar = pillar.merge(
             owner_map[["Key","branch_finance_lead"]],
             on="Key",
             how="left"
         )
-
+        
         pillar = pillar.rename(columns={"branch_finance_lead":"Owner"})
 
         st.write("Creating pivot...")
