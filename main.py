@@ -151,6 +151,7 @@ if run:
             on="Location",
             how="left"
         )
+        hub_sheets = {}
 
         st.write("Preparing Excel output...")
 
