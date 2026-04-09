@@ -426,13 +426,13 @@ if run:
 
 
         pivot["Inter assignment adjustment"] = ""
-
+        pivot["Var. Performed Vs. Billed"] = pd.to_numeric( pivot["Var. Performed Vs. Billed"], errors="coerce" )
         seen = {}
         
         for idx, row in pivot.iterrows():
         
             order = str(row["Order No"]).strip()
-            val = row["Var. Performed Vs. Billed"]
+            val = pd.to_numeric(row["Var. Performed Vs. Billed"], errors="coerce")
         
             if pd.isna(val) or val == 0:
                 continue
