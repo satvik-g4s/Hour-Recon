@@ -425,7 +425,7 @@ if run:
         pivot = pivot[[ "HUB", "Location", "Zone", "Owner", "Customer Code", "Customer Name", "Order No", "Invoice No", "WF_TaskID", "Period From", "Period To", "Total Attendance", "Total Performed", "Total Billed", "Var. Performed Vs. Billed", "Office Duty/Office Patrolling", "Excess Paid", "Reliever duty", "Excess billing", "Short billing", "Disciplinary Deduction", "Short / Missing Roster", "Inter assignment adjustment", "Indirect Hours Not Captured in Saturn", "Training & OJT", "Complimentary Hrs.", "Billing Cycle/ hours calculation other than calendar month", "Bill Hrs should being Cycle", "Diff with bill cycle should be", "Total ( B )", "Check (A - B)", "BFL Remarks", "SSC Query (If Any)" ]]
 
 
-        pivot["Inter assignment adjustment"] = ""
+        pivot["Inter assignment adjustment"] = pd.NA
         pivot["Var. Performed Vs. Billed"] = pd.to_numeric( pivot["Var. Performed Vs. Billed"], errors="coerce" )
         seen = {}
         
