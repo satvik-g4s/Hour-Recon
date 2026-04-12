@@ -62,6 +62,7 @@ st.divider()
 # RUN BUTTON
 # =========================
 run = st.button("▶️ Run Processing")
+log_container = st.container()
 
 st.divider()
 
@@ -151,7 +152,7 @@ if run:
 
     if uploaded_file_dump and uploaded_file_pillar and uploaded_file_owner and uploaded_file_attendance:
 
-        st.write("Reading files...")
+        log_container.write("Reading files...")
 
         dump = read_file( uploaded_file_dump, header=2, usecols=["Order No","Period From","Period To","Invoice dt"] )
 
@@ -161,7 +162,7 @@ if run:
 
         attendance = read_file(uploaded_file_attendance, header=2)
 
-        st.write("Cleaning data...")
+        log_container.write("Cleaning data...")
         owner_map.columns = owner_map.columns .str.strip() .str.lower() .str.replace(" ", "_") 
 
         str_cols = dump.select_dtypes(include="object").columns
@@ -205,7 +206,7 @@ if run:
             how="left"
         )
 
-        st.write("Processing attendance...")
+        log_container.write("Processing attendance...")
 
         def normalize_attendance_col(col):
             if not isinstance(col, str):
@@ -254,7 +255,7 @@ if run:
 
         pillar = pillar.drop(columns=["row_key"])
 
-        st.write("Creating HUB Zone mapping...")
+        log_container.write("Creating HUB Zone mapping...")
 
         # (HUB ZONE DATA UNCHANGED)
         hub_zone_data = [ ("ALIGRD","Kolkata","Kolkata Zone"), ("ASLGRD","Kolkata","East COC"), ("BBRGRD","Kolkata","Odisha Zone"), ("BBLGRD","Kolkata","Odisha Zone"), ("JAJGRD","Kolkata","Odisha Zone"), ("JHAGRD","Kolkata","Odisha Zone"), ("JASGRD","Kolkata","East COC"), ("PATGRD","Kolkata","East COC"), ("PTNGRD","Kolkata","East COC"), ("BHRGRD","Kolkata","East COC"), ("DALGRD","Kolkata","Kolkata Zone"), ("GUWGRD","Kolkata","East COC"), ("GHTGRD","Kolkata","East COC"), ("HOWGRD","Kolkata","Kolkata Zone"), ("RJHGRD","Kolkata","Kolkata Zone"), ("KOLGRD","Kolkata","Kolkata Zone"), ("SALGRD","Kolkata","Kolkata Zone"), ("SILGRD","Kolkata","East COC"), ("USCGRD","Kolkata","East COC"), ("RAIGRD","Kolkata","East COC"), ("BARGRD","Kolkata","Odisha Zone"), ("ROUGRD","Kolkata","Odisha Zone"), ("JAMGRD","Kolkata","East COC"), ("KONGRD","Kolkata","Kolkata Zone"), ("BHLGRD","NCR","North COC"), ("IDRGRD","NCR","North COC"), ("CP1GRD","NCR","Delhi Zone"), ("CP2GRD","NCR","Delhi Zone"), ("DROGRD","NCR","Delhi Zone"), ("EMBGRD","NCR","Delhi Zone"), ("FRMGRD","NCR","Delhi Zone"), ("PSPGRD","NCR","Delhi Zone"), ("GOLGRD","NCR","Delhi Zone"), ("VVRGRD","NCR","Delhi Zone"), ("USEGRD","NCR","North COC"), ("GHAGRD","NCR","Noida Zone"), ("LKWGRD","NCR","North COC"), ("MRTGRD","NCR","North COC"), ("NDAGRD","NCR","Noida Zone"), ("NDGGRD","NCR","Noida Zone"), ("CHDGRD","NCR","North COC"), ("CROGRD","NCR","North COC"), ("DDNGRD","NCR","North COC"), ("UTKGRD","NCR","North COC"), ("JMUGRD","NCR","North COC"), ("JAUGRD","NCR","North COC"), ("JNKGRD","NCR","North COC"), ("PRWGRD","NCR","North COC"), ("PWNGRD","NCR","North COC"), ("RUDGRD","NCR","North COC"), ("RPRGRD","NCR","North COC"), ("FBDGRD","NCR","Gurgaon Zone"), ("GGNGRD","NCR","Gurgaon Zone"), ("GNBGRD","NCR","Gurgaon Zone"), ("GNSGRD","NCR","Gurgaon Zone"), ("MNSGRD","NCR","Gurgaon Zone"), ("SPTGRD","NCR","North COC"), ("JALGRD","NCR","North COC"), ("LUDGRD","NCR","North COC"), ("JPRGRD","NCR","North COC"), ("DHRGRD","NCR","North COC"), ("JARGRD","NCR","North COC"), ("UDRGRD","NCR","North COC"), ("DUNGRD","NCR","North COC"), ("SNPGRD","NCR","North COC"), ("TYMGRD","NCR","Delhi Zone"), ("TEPGRD","NCR","Noida Zone"), ("OKLGRD","NCR","Delhi Zone"), ("HUBGRD","South","South COC"), ("BELGRD","South","South COC"), ("BANGRD","South","Bangalore Zone"), ("BLRGRD","South","Bangalore Zone"), ("DOMGRD","South","Bangalore Zone"), ("ELEGRD","South","Bangalore Zone"), ("HOOGRD","South","Bangalore Zone"), ("ORRGRD","South","Bangalore Zone"), ("SARGRD","South","Bangalore Zone"), ("VASGRD","South","Bangalore Zone"), ("WHTGRD","South","Bangalore Zone"), ("YELGRD","South","Bangalore Zone"), ("YESGRD","South","Bangalore Zone"), ("MNGGRD","South","South COC"), ("MYOGRD","South","South COC"), ("MYSGRD","South","South COC"), ("HOPGRD","South","Bangalore Zone"), ("COMGRD","South","South COC"), ("CBTGRD","South","South COC"), ("ADYGRD","South","Chennai Zone"), ("ANNGRD","South","Chennai Zone"), ("CHNGRD","South","Chennai Zone"), ("GUIGRD","South","Chennai Zone"), ("MMNGRD","South","Chennai Zone"), ("NUGGRD","South","Chennai Zone"), ("SRIGRD","South","Chennai Zone"), ("COCGRD","South","South COC"), ("PONGRD","South","South COC"), ("MADGRD","South","South COC"), ("TRVGRD","South","South COC"), ("SIRGRD","South","Chennai Zone"), ("SLMGRD","South","South COC"), ("HYDGRD","South","Hyderabad Zone"), ("HYRGRD","South","Hyderabad Zone"), ("HYTGRD","South","Hyderabad Zone"), ("JBHGRD","South","Hyderabad Zone"), ("MHPGRD","South","Hyderabad Zone"), ("VIGGRD","South","South COC"), ("VIZGRD","South","South COC"), ("VJWGRD","South","South COC"), ("VWDGRD","South","South COC"), ("ANPGRD","South","Hyderabad Zone"), ("HSRGRD","South","South COC"), ("AHDGRD","Mumbai","West COC"), ("AHMGRD","Mumbai","West COC"), ("AINGRD","Mumbai","West COC"), ("ANKGRD","Mumbai","West COC"), ("BODGRD","Mumbai","West COC"), ("JNAGRD","Mumbai","West COC"), ("MLDGRD","Mumbai","Mumbai Zone"), ("MNMGRD","Mumbai","Mumbai Zone"), ("MNVGRD","Mumbai","Mumbai Zone"), ("MSOGRD","Mumbai","Mumbai Zone"), ("MUCGRD","Mumbai","Mumbai Zone"), ("MUMGRD","Mumbai","Mumbai Zone"), ("MUSGRD","Mumbai","West COC"), ("GONGRD","Mumbai","West COC"), ("GOAGRD","Mumbai","West COC"), ("NAGGRD","Mumbai","West COC"), ("PROGRD","Mumbai","West COC"), ("PNEGRD","Mumbai","Pune Zone"), ("PNHGRD","Mumbai","Pune Zone"), ("RJGGRD","Mumbai","Pune Zone"), ("PNRGRD","Mumbai","Pune Zone"), ("PUWGRD","Mumbai","Pune Zone"), ("PUNGRD","Mumbai","Pune Zone"), ("DEUGRD","Mumbai","West COC"), ("PNIGRD","Mumbai","Pune Zone"), ("MONGRD","Mumbai","Mumbai Zone"), ("MUSMSP","Mumbai","Mumbai Zone"), ("CORMSP","Mumbai","Mumbai Zone"), ("INVGRD","HeadOffice","Head Office"), ("OTHGRD","HeadOffice","Head Office"), ("PSOGRD","HeadOffice","Head Office"), ("TRGGRD","HeadOffice","Head Office"), ("CORGRD","HeadOffice","Head Office"), ("HO","HeadOffice","Head Office"), ("HIMGRD","NCR","North COC") ]
@@ -273,7 +274,7 @@ if run:
             how="left"
         )
 
-        st.write("Owner mapping...")
+        log_container.write("Owner mapping...")
 
         owner_map["billing_location"] = (
             owner_map["billing_location"]
@@ -319,7 +320,7 @@ if run:
 
         pillar = pillar.rename(columns={"branch_finance_lead": "Owner"})
 
-        st.write("Creating pivot...")
+        log_container.write("Creating pivot...")
 
         pivot = (
             pillar.groupby([
@@ -379,7 +380,7 @@ if run:
 
         india_conso = pivot.copy()
 
-        st.write("Preparing Excel output...")
+        log_container.write("Preparing Excel output...")
 
         output = BytesIO()
 
@@ -394,10 +395,11 @@ if run:
                     index=False
                 )
 
-        st.success("Processing complete ✅")
+        log_container.success("Processing complete ✅")
 
-        st.download_button(
-            "📥 Download Output Excel",
+
+        log_container.download_button(
+            "📥 Download Reconciliation Report",
             data=output.getvalue(),
             file_name="Hours_Recon_Output.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
