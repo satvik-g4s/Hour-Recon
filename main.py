@@ -154,7 +154,7 @@ if run:
 
         log_container.write("Reading files...")
 
-        dump = read_file( uploaded_file_dump, header=2, usecols=["Order No","Period From","Period To","Invoice dt"] )
+        dump = read_file( uploaded_file_dump, header=0, usecols=["Order No","Period From","Period To","Invoice dt"] )
 
         pillar = read_file( uploaded_file_pillar, header=2, usecols=[ "Location","Customer Code","Customer Name","Order No","Invoice No", "SO Line No","No of Post","Deployment Hrs","WF_TaskID", "Performed Hrs","Billed Hrs","Billed Vs Performed", "Contracted Vs Performed","Billing Pattern", "ERP Cont Hrs","Saturn Cont Hrs","Scheduled Hrs" ] )
 
