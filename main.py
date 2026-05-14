@@ -58,7 +58,7 @@ with col1:
     )
 
     st.caption(
-        "Required columns: Order No, Period From, Period To, Invoice dt"
+        "Required columns: Order No, Period From, Period To, Invoice dt; Headers should be in 1st row"
     )
 
 with col2:
