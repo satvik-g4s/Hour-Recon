@@ -7,34 +7,119 @@ import time
 
 st.set_page_config(layout="wide")
 
+
 # =========================
-# FILE READER
+#  FILE READER
 # =========================
-def read_file(file, header=0, usecols=None):
+def read_file(
+    file,
+    required_cols=None,
+    default_header=0,
+    usecols=None,
+    search_header=False
+):
 
     try:
 
-        if file.name.endswith(".csv"):
-            return pd.read_csv(
-                file,
-                header=header,
-                encoding="latin1",
-                index_col=False,
-                usecols=usecols
-            )
+        # =========================
+        # NORMAL READ
+        # =========================
+        if not search_header:
 
-        elif file.name.endswith(".xlsx"):
-            return pd.read_excel(
-                file,
-                header=header,
-                usecols=usecols
-            )
+            if file.name.endswith(".csv"):
 
+                return pd.read_csv(
+                    file,
+                    header=default_header,
+                    encoding="latin1",
+                    index_col=False,
+                    usecols=usecols
+                )
+
+            elif file.name.endswith(".xlsx"):
+
+                return pd.read_excel(
+                    file,
+                    header=default_header,
+                    usecols=usecols
+                )
+
+            else:
+                raise ValueError("Unsupported file format")
+
+        # =========================
+        # SMART HEADER SEARCH
+        # =========================
         else:
-            raise ValueError("Unsupported file format")
+
+            for header_row in range(10):
+
+                try:
+
+                    file.seek(0)
+
+                    if file.name.endswith(".csv"):
+
+                        temp_df = pd.read_csv(
+                            file,
+                            header=header_row,
+                            encoding="latin1",
+                            index_col=False
+                        )
+
+                    elif file.name.endswith(".xlsx"):
+
+                        temp_df = pd.read_excel(
+                            file,
+                            header=header_row
+                        )
+
+                    else:
+                        raise ValueError("Unsupported file format")
+
+                    temp_cols = [
+                        str(col).strip()
+                        for col in temp_df.columns
+                    ]
+
+                    if all(
+                        col in temp_cols
+                        for col in required_cols
+                    ):
+
+                        file.seek(0)
+
+                        if file.name.endswith(".csv"):
+
+                            return pd.read_csv(
+                                file,
+                                header=header_row,
+                                encoding="latin1",
+                                index_col=False,
+                                usecols=usecols
+                            )
+
+                        else:
+
+                            return pd.read_excel(
+                                file,
+                                header=header_row,
+                                usecols=usecols
+                            )
+
+                except:
+                    continue
+
+            raise Exception(
+                f"Header row not found within first 10 rows. "
+                f"Required columns: {required_cols}"
+            )
 
     except Exception as e:
-        raise Exception(f"Unable to read file '{file.name}': {e}")
+
+        raise Exception(
+            f"Unable to read file '{file.name}': {e}"
+        )
 
 
 # =========================
@@ -207,13 +292,19 @@ if run:
 
                 dump = read_file(
                     uploaded_file_dump,
-                    header=0,
+                    required_cols=[
+                        "Order No",
+                        "Period From",
+                        "Period To",
+                        "Invoice dt"
+                    ],
                     usecols=[
                         "Order No",
                         "Period From",
                         "Period To",
                         "Invoice dt"
-                    ]
+                    ],
+                    search_header=True
                 )
 
             except Exception as e:
@@ -223,28 +314,35 @@ if run:
             try:
 
                 pillar = read_file(
-                    uploaded_file_pillar,
-                    header=2,
-                    usecols=[
-                        "Location",
-                        "Customer Code",
-                        "Customer Name",
-                        "Order No",
-                        "Invoice No",
-                        "SO Line No",
-                        "No of Post",
-                        "Deployment Hrs",
-                        "WF_TaskID",
-                        "Performed Hrs",
-                        "Billed Hrs",
-                        "Billed Vs Performed",
-                        "Contracted Vs Performed",
-                        "Billing Pattern",
-                        "ERP Cont Hrs",
-                        "Saturn Cont Hrs",
-                        "Scheduled Hrs"
-                    ]
-                )
+                uploaded_file_pillar,
+                required_cols=[
+                    "Location",
+                    "Customer Code",
+                    "Customer Name",
+                    "Order No",
+                    "Invoice No"
+                ],
+                usecols=[
+                    "Location",
+                    "Customer Code",
+                    "Customer Name",
+                    "Order No",
+                    "Invoice No",
+                    "SO Line No",
+                    "No of Post",
+                    "Deployment Hrs",
+                    "WF_TaskID",
+                    "Performed Hrs",
+                    "Billed Hrs",
+                    "Billed Vs Performed",
+                    "Contracted Vs Performed",
+                    "Billing Pattern",
+                    "ERP Cont Hrs",
+                    "Saturn Cont Hrs",
+                    "Scheduled Hrs"
+                ],
+                search_header=True
+            )
 
             except Exception as e:
                 st.error(f"Error reading Pillar File: {e}")
@@ -255,14 +353,15 @@ if run:
                 owner_map = read_file(uploaded_file_owner)
 
             except Exception as e:
-                st.error(f"Error reading Owner Mapping File: {e}")
+                st.error(f"Error reading Owner Mapping File: {e}, Kindly Upload in csv, header in 1st line")
                 st.stop()
 
             try:
 
                 attendance = read_file(
                     uploaded_file_attendance,
-                    header=2
+                    required_cols=["Row Labels"],
+                    search_header=True
                 )
 
             except Exception as e:
